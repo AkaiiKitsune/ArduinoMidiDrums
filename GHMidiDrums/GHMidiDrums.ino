@@ -1,3 +1,13 @@
+/* 
+ *  GHMidiDrums
+ * Une modification du code de Evan kale afin de le rendre compatible midi over usb
+ * Utilise Teeonardu
+ * Il fait compiler ce code en mode Teeonardu, 16mhz, midi, sinon le compilateur ne compilera pas.
+ * 
+ * Edit par Farewell_
+ * Contact : Discord@ Farewell_#0908
+ */
+ 
 //constants
 #define NUM_PIEZOS 6 
 #define CHANNEL  1
@@ -25,8 +35,7 @@ boolean isLastPeakZeroed[NUM_PIEZOS];
 unsigned long lastPeakTime[NUM_PIEZOS];
 unsigned long lastNoteTime[NUM_PIEZOS];
 
-/* The list with the corresponding note numbers: for example, the values of the first button will be sent as the first note number in this list, the second switch as the second note, etc... 0x3C is defined in the MIDI implementation as the middle C.
- Here's the list with all note numbers:  http://www.electronics.dit.ie/staff/tscarff/Music_technology/midi/midi_note_numbers_for_octaves.htm  You can change them if you want.*/
+// The list with the corresponding note numbers
 int notes[NUM_PIEZOS] = { 
   0x46, //70
   0x47, //71
@@ -36,9 +45,9 @@ int notes[NUM_PIEZOS] = {
   0x4B  //76
 };
 
-/* The list with the numbers of the pins that have a switch or push button connected. Make sure they do not interfere with the analog inputs. Adapt to your own needs.*/
+// The list with the numbers of the pins that have a pad connected
 unsigned short pins[NUM_PIEZOS] = { 
-  0,1,2,3,4,5 //Pins 0 à 5
+  0,1,2,3,4,5 //Pins 0 to 5
 };
 
 //Thresholds
@@ -93,9 +102,9 @@ void loop(){
         unsigned short prevSignal = signalBuffer[i][prevSignalIndex];
         unsigned short newPeak = 0;
         
-        while(prevSignal >= thresholdMap[i]){ //find the wave peak if previous signal was not 0 by going through previous signal values until another 0 is reached
+        while(prevSignal >= thresholdMap[i]){                          //find the wave peak if previous signal was not 0 by going through previous signal values until another 0 is reached
           if(signalBuffer[i][prevSignalIndex] > newPeak) newPeak = signalBuffer[i][prevSignalIndex];        
-          prevSignalIndex--; //decrement previous signal index, and get previous signal
+          prevSignalIndex--;                                           //decrement previous signal index, and get previous signal
           if(prevSignalIndex < 0) prevSignalIndex = SIGNAL_BUFFER_SIZE-1;
           prevSignal = signalBuffer[i][prevSignalIndex];
         }
@@ -110,20 +119,20 @@ void loop(){
 
 void recordNewPeak(short slot, short newPeak){
   isLastPeakZeroed[slot] = (newPeak == 0);
-  unsigned long currentTime = millis(); //Read current time
+  unsigned long currentTime = millis();                 //Read current time
   
-  lastPeakTime[slot] = currentTime;     //Seting last peak time to current time
-  peakBuffer[slot][currentPeakIndex[slot]] = newPeak; //new peak recorded (newPeak)
+  lastPeakTime[slot] = currentTime;                     //Seting last peak time to current time
+  peakBuffer[slot][currentPeakIndex[slot]] = newPeak;   //new peak recorded (newPeak)
   
   //get previous peak
   short prevPeakIndex = currentPeakIndex[slot]-1;
   if(prevPeakIndex < 0) prevPeakIndex = PEAK_BUFFER_SIZE-1;        
   unsigned short prevPeak = peakBuffer[slot][prevPeakIndex];
   
-  if(newPeak > prevPeak && (currentTime - lastNoteTime[slot])>MIN_TIME_BETWEEN_NOTES){ //If new peak < prev peak (note still rising)
-    noteReady[slot] = true; //Note ready to fire, waiting for prevPeak > newPeak
+  if(newPeak > prevPeak && (currentTime - lastNoteTime[slot])>MIN_TIME_BETWEEN_NOTES){  //If new peak < prev peak (note still rising)
+    noteReady[slot] = true;                                                             //Note ready to fire, waiting for prevPeak > newPeak
     if(newPeak > noteReadyVelocity[slot]) noteReadyVelocity[slot] = newPeak;
-  }else if(newPeak < prevPeak && noteReady[slot]){ //prevPeak > newPeak and note ready to fire : fire note
+  }else if(newPeak < prevPeak && noteReady[slot]){                                      //prevPeak > newPeak and note ready to fire : fire note
     noteFire(notes[slot], noteReadyVelocity[slot]);
     noteReady[slot] = false;
     noteReadyVelocity[slot] = 0;
@@ -145,22 +154,3 @@ void noteFire(unsigned short note, unsigned short velocity){
   //midiNoteOn(note, velocity);
   //midiNoteOff(note, velocity);
 }
-
-
-//
-// void loop() {
-//  for(int i = 0; i < NUMBER_OF_DIGITAL_INPUTS; i++){                        // Repeat this procedure for every digital input.
-//    digitalVal[i] = digitalRead(switches[i]);                                       // Read the switch and store the value (1 or 0) in the digitalVal array.
-//    if(digitalVal[i] != digitalOld[i]){                                   // Only send the value, if it is a different value than last time.
-//      if(digitalVal[i] == 0){                                             // If the i'th switch is pressed:
-//        usbMIDI.sendNoteOn(notes[i], 127, CHANNEL);   /* Send the MIDI note on message: choose the i'th note in the array above, set the velocity to 127 or 100%, on the predefined channel.
-//        NOTE: the compiler will not recognize this command if you don't have Teensyduino and TeeOnArdu installed, if the board type is not TeeOnArdu, or if the USB type is not set to MIDI.*/
-//      } else {                                                            // If the i'th switch is released:
-//        usbMIDI.sendNoteOff(notes[i], 127, CHANNEL);   /* Send the MIDI note off message: choose the i'th note in the array above, set the velocity to 127 or 100%, on the predefined channel.
-//        NOTE: the compiler will not recognize this command if you don't have Teensyduino and TeeOnArdu installed, if the board type is not TeeOnArdu, or if the USB type is not set to MIDI.*/
-//      }
-//    }
-//    digitalOld[i] = digitalVal[i];                                          // Put the digital values in the array for old digital values, so we can compare the new values with the previous ones.
-//  }
-//}
-//
